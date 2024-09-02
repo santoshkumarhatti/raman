@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Resume Screening</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+    <style>
+        .rounded-box {
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+
+        .section-box {
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            background-color: #ffffff;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            background-color: #007bff;
+            color: white;
+            padding: 10px;
+            border-radius: 10px 10px 0 0;
+            margin: -15px -15px 10px -15px;
+        }
+
+        .section-content {
+            padding: 15px;
+        }
+
+        .skills-summary {
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 10px;
+            background-color: #e9ecef;
+            margin-bottom: 15px;
+        }
+
+        .skills-summary h6 {
+            color: #343a40;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .skills-summary table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .skills-summary table th,
+        .skills-summary table td {
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .skills-summary table th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .skills-summary table td {
+            background-color: #ffffff;
+        }
+
+        .skills-summary-box {
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            background-color: #f1f1f1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <div class="rounded-box">
+            <h1 class="mt-3">Resume Screening Results</h1>
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h4 class="card-title">File: {{ filename }}</h4>
+                    <hr>
+                    <div class="section-box">
+                        <h5 class="section-title">Screening Summary</h5>
+                        <div id="hasil" class="section-content">
+                            <p><strong>Skills by Category:</strong></p>
+                            <ul>
+                                <li><strong>Project Management:</strong> {{ ', '.join(data_all_list[0]) }}</li>
+                                <li><strong>Backend:</strong> {{ ', '.join(data_all_list[1]) }}</li>
+                                <li><strong>Frontend:</strong> {{ ', '.join(data_all_list[2]) }}</li>
+                                <li><strong>Data Science:</strong> {{ ', '.join(data_all_list[3]) }}</li>
+                                <li><strong>DevOps:</strong> {{ ', '.join(data_all_list[4]) }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <hr>
+                    <h5>Skills Distribution</h5>
+                    <img src="data:image/png;base64,{{ plot_url }}" alt="Skills Distribution" class="img-fluid">
+                    <hr>
+                    <div class="section-box">
+                        <h5 class="section-title">Machine Learning Skills Prediction</h5>
+                        <div class="section-content">
+                            <div class="skills-summary skills-summary-box">
+                                <h6>Skills Summary:</h6>
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Skill</th>
+                                            {% for skill in skills_summary['Skill'] %}
+                                            <th>{{ skill }}</th>
+                                            {% endfor %}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Probability</td>
+                                            {% for prob in skills_summary['Probability'] %}
+                                            <td>{{ prob|default(0)|round(2) }}%</td>
+                                            {% endfor %}
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <h5>Predicted Skills Probability</h5>
+                    <img src="{{ ml_plot_url }}" alt="Predicted Skills Probability" class="img-fluid">
+                    <hr>
+                    <button class="btn btn-primary" id="download-pdf">Download PDF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Function to show alerts
+            function showAlert(message) {
+                alert(message);
+            }
+
+            // Check for flash messages and show alerts
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            {% for message in messages %}
+            showAlert("{{ message }}");
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+        });
+
+        // Download PDF functionality
+        document.getElementById('download-pdf').addEventListener('click', function () {
+            const element = document.querySelector('.container');
+            html2pdf().from(element).save('resume_screening_results.pdf');
+        });
+    </script>
+</body>
+
+</html>
