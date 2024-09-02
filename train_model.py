@@ -31,22 +31,6 @@ param_grid = {
 grid_search = GridSearchCV(pipeline, param_grid, cv=5, scoring='accuracy', n_jobs=-1)
 grid_search.fit(X, y)
 
-# Print the best parameters and the corresponding score
-print(f"Best parameters found: {grid_search.best_params_}")
-print(f"Best cross-validation accuracy: {grid_search.best_score_}")
-
-# Get the best model from grid search
-best_model = grid_search.best_estimator_
-
-# Make predictions on the training set
-y_pred = best_model.predict(X)
-
-# Print the classification report
-print("Classification Report:")
-print(classification_report(y, y_pred))
-
-# Print the accuracy score
-print(f"Accuracy Score: {accuracy_score(y, y_pred)}")
 
 # Save the trained model to a file
 model_path = 'models/skill_model.pkl'
