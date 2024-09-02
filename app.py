@@ -15,8 +15,8 @@ app.config['SECRET_KEY'] = 'super secret key'
 
 # Setup directories and file extensions
 path = os.getcwd()
-UPLOAD_FOLDER = os.path.join(path, 'uploads')
-MODEL_FOLDER = os.path.join(path, 'models')
+UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', '/app/uploads')
+MODEL_FOLDER = os.environ.get('MODEL_FOLDER', '/app/models')
 ALLOWED_EXTENSIONS = {'pdf'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
