@@ -2,7 +2,7 @@ Flask==2.3.2
 werkzeug==2.3.7
 PyPDF2==3.0.1
 pandas==2.0.3
-matplotlib==3.8.4
+matplotlib==3.5.2
 base64io==1.0.0
 joblib==1.4.2
 scikit-learn==1.3.1
