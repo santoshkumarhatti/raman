@@ -14,10 +14,9 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super secret key'
 
 # Setup directories and file extensions
-UPLOAD_FOLDER = '/uploads'
-MODEL_FOLDER = '/models'
-
-
+path = os.getcwd()
+UPLOAD_FOLDER = os.path.join(path, 'uploads')
+MODEL_FOLDER = os.path.join(path, 'models')
 ALLOWED_EXTENSIONS = {'pdf'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
