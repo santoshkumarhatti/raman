@@ -21,9 +21,15 @@ ALLOWED_EXTENSIONS = {'pdf'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
 
+# Ensure the upload folder exists
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 # Load the machine learning model
 model_path = os.path.join(MODEL_FOLDER, 'skill_model.pkl')
-model = joblib.load(model_path)
+try:
+    model = joblib.load(model_path)
+except FileNotFoundError:
+    raise RuntimeError(f"The model file at {model_path} does not exist. Please ensure the model is trained and the path is correct.")
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -68,8 +74,6 @@ def upload_file():
             return redirect(request.url)
     return render_template("index.html")
 
-# (rest of your code remains unchanged)
-
 @app.route('/screening/<name>', methods=['GET', 'POST'])
 def screening(name):
     if request.method == 'POST':
@@ -85,7 +89,7 @@ def screening(name):
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             text = extract_text_from_pdf(filename)
     else:
-        text = extract_text_from_pdf(name)
+        text = extract_text_from_pdf(os.path.join(app.config['UPLOAD_FOLDER'], name))
 
     text = clean_resume(text)
 
@@ -99,17 +103,6 @@ def screening(name):
 
     return render_template("screening.html", filename=name, bidang=bidang, data_all_list=data_all_list,
                            summary=summary, plot_url=pie_plot_url, skills_summary=summary, ml_plot_url=plot_url)
-
-def extract_text_from_pdf(filename):
-    with open(os.path.join(app.config['UPLOAD_FOLDER'], filename), 'rb') as pdfFileObj:
-        pdfReader = PyPDF2.PdfReader(pdfFileObj)
-        num_pages = len(pdfReader.pages)
-        text = ""
-        for count in range(num_pages):
-            pageObj = pdfReader.pages[count]
-            text += pageObj.extract_text()
-    return text    
-    
 
 def clean_resume(resumeText):
     resumeText = re.sub(r'http\S+\s*', ' ', resumeText)  # remove URLs
@@ -158,27 +151,16 @@ def generate_summary_plot(skills):
 
 
 def existing_screening_functionality(filename):
-    pdfFileObj = open('uploads/{}'.format(filename), 'rb')
-    pdfReader = PyPDF2.PdfReader(pdfFileObj)
-    num_pages = len(pdfReader.pages)
-    count = 0
-    text = ""
-    while count < num_pages:
-        pageObj = pdfReader.pages[count]
-        count += 1
-        text += pageObj.extract_text()
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    with open(file_path, 'rb') as pdfFileObj:
+        pdfReader = PyPDF2.PdfReader(pdfFileObj)
+        num_pages = len(pdfReader.pages)
+        text = ""
+        for count in range(num_pages):
+            pageObj = pdfReader.pages[count]
+            text += pageObj.extract_text()
 
-    def cleanResume(resumeText):
-        resumeText = re.sub('http\S+\s*', ' ', resumeText)  # remove URLs
-        resumeText = re.sub('RT|cc', ' ', resumeText)  # remove RT and cc
-        resumeText = re.sub('#\S+', '', resumeText)  # remove hashtags
-        resumeText = re.sub('@\S+', '  ', resumeText)  # remove mentions
-        resumeText = re.sub('[%s]' % re.escape("""!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"""), ' ', resumeText)  # remove punctuations
-        resumeText = re.sub(r'[^\x00-\x7f]', r' ', resumeText)
-        resumeText = re.sub('\s+', ' ', resumeText)  # remove extra whitespace
-        return resumeText.lower()
-
-    text = cleanResume(text)
+    text = clean_resume(text)
 
     bidang = {
         'Project Management': ['administration', 'agile', 'feasibility analysis', 'finance', 'leadership',
@@ -205,64 +187,64 @@ def existing_screening_functionality(filename):
     project = 0
     backend = 0
     frontend = 0
-    data = 0
     devops = 0
 
     project_list = []
     backend_list = []
     frontend_list = []
-    data_list = []
     devops_list = []
 
-    # Create an empty list where the scores will be stored
-    scores = []
-
-    # Obtain the total number of words in the CV (cleaned)
-    words = len(text.split(" "))
-
-    for key in bidang:
-        for skill in bidang[key]:
-            if skill in text:
-                if key == "Project Management":
+    for word, item in bidang.items():
+        if word == 'Project Management':
+            for data in item:
+                if data in text:
                     project += 1
-                    project_list.append(skill)
-                elif key == "Backend":
+                    project_list.append(data)
+        elif word == 'Backend':
+            for data in item:
+                if data in text:
                     backend += 1
-                    backend_list.append(skill)
-                elif key == "Frontend":
+                    backend_list.append(data)
+        elif word == 'Frontend':
+            for data in item:
+                if data in text:
                     frontend += 1
-                    frontend_list.append(skill)
-                elif key == "Devops":
+                    frontend_list.append(data)
+        elif word == 'Devops':
+            for data in item:
+                if data in text:
                     devops += 1
-                    devops_list.append(skill)
+                    devops_list.append(data)
 
-    def create_plot(data_all):
-        explode = (0.1, 0.1, 0.1, 0.1)
-        colors = ['#ff9999', '#66b3ff', '#99ff99', '#ffcc99', '#c2c2f0']
-        fig, ax = plt.subplots(figsize=(10, 6), subplot_kw=dict(aspect="equal"))
-        wedges, texts, autotexts = ax.pie(data_all, explode=explode, colors=colors, autopct='%1.1f%%', startangle=140)
-        ax.legend(wedges, ['Project Management', 'Backend', 'Frontend', 'DevOps'],
-                  title="Categories", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
-        plt.setp(autotexts, size=10, weight="bold")
-        ax.set_title("Skills Distribution")
-        plt.tight_layout()
-        buffer = BytesIO()
-        plt.savefig(buffer, format="png")
-        buffer.seek(0)
-        plot_url = base64.b64encode(buffer.getvalue()).decode("utf-8")
-        return plot_url
+    data_all = {
+        'Project Management': project,
+        'Backend': backend,
+        'Frontend': frontend,
+        'Devops': devops
+    }
 
-    data_all = [project, backend, frontend, devops]
     data_all_list = [project_list, backend_list, frontend_list, devops_list]
 
-    pie_plot_url = create_plot(data_all)
+    # Create a bar plot
+    fig, ax = plt.subplots()
+    bars = ax.bar(data_all.keys(), data_all.values(), color=colors[:len(data_all)])
 
-    return bidang, data_all_list, pie_plot_url
+    # Set x-axis labels to be horizontal (no rotation)
+    ax.set_xticklabels(data_all.keys(), rotation=0, ha='center', fontsize=10)
+    ax.set_xlabel('Skills', fontsize=12)
+    ax.set_ylabel('Probability (%)', fontsize=12)
+    ax.set_title('Predicted Skills Probability', fontsize=14)
 
-@app.route('/return-files/<filename>')
-def return_files_tut(filename):
-    file_path = UPLOAD_FOLDER + '/' + filename
-    return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True, attachment_filename='')
+    plt.tight_layout()
 
+    # Convert plot to PNG image
+    png_image = BytesIO()
+    plt.savefig(png_image, format='png')
+    png_image.seek(0)
+    plot_url = base64.b64encode(png_image.getvalue()).decode('utf8')
+
+    return data_all, data_all_list, 'data:image/png;base64,{}'.format(plot_url)
+
+# Run the Flask app
 if __name__ == "__main__":
     app.run(debug=True)
